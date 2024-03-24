@@ -5,6 +5,7 @@ window.addEventListener('load', () => {
   canvas.height = 720;
   let pipes = [];
   let score = 0;
+  let highScore = 0;
   let gameOver = false;
 
   class InputHandler {
@@ -37,6 +38,10 @@ window.addEventListener('load', () => {
         this.allowSpace = true;
       });
     }
+    reset() {
+      this.keys = [];
+      this.allowSpace = true;
+    }
   }
 
   class Player {
@@ -47,19 +52,19 @@ window.addEventListener('load', () => {
       this.height = 70;
       this.x = 100;
       this.y = 50;
-      this.gravity = 0.5;
-      this.jump = -10;
+      this.gravity = 0.02 + score/24000;
+      this.jump = -0.034 - score/16000;
       this.velocity = 0;
     }
-    controlJump() {
-      this.velocity = this.jump;
+    controlJump(deltaTime) {
+      this.velocity = this.jump * deltaTime;
     }
     update(input, deltaTime) {
       this.velocity += this.gravity;
-      this.y += this.velocity;
+      this.y += this.velocity * deltaTime;
       // controls
       if (input.keys.includes(' ')) {
-        this.controlJump()
+        this.controlJump(deltaTime)
         input.keys.splice(input.keys.indexOf(' '), 1);
       };
       // handle game over
@@ -89,33 +94,34 @@ window.addEventListener('load', () => {
       context.fillStyle = 'blue';
       context.fillRect(this.x, this.y, this.width, this.height);
     }
+    reset() {
+      this.velocity = 0;
+      this.y = 50;
+    }
   }
 
   class Pipe {
-    constructor(canvasWidth, canvasHeight) {
+    constructor(canvasWidth, canvasHeight, score) {
       this.canvasWidth = canvasWidth;
       this.canvasHeight = canvasHeight;
+      this.difficulty = Math.floor(score / 5);
       this.width = 150;
-      this.height = 250;
+      if (this.difficulty <= 10) this.height = 500 - this.difficulty * 20;
+      else if (this.difficulty <= 20) this.height = 450 - (this.difficulty - 10) * 20;
+      else if (this.difficulty <= 30) this.height = 400 - (this.difficulty - 20) * 20;
+      else if (this.difficulty <= 40) this.height = 375 - (this.difficulty - 30) * 20;
+      else this.height = Math.random() * 200 + 150 + this.difficulty;
       this.x = canvas.width;
       this.y = Math.random() * (canvasHeight - this.height);
-      this.frameX = 0;
-      this.maxFrame = 4;
-      this.fps = 20;
-      this.frameTimer = 0;
-      this.frameInterval = 1000 / this.fps;
-      this.speed = 5;
+      if (this.difficulty <= 60) this.speed = 0.2 + this.difficulty * 0.01;
+      else this.speed = 0.8;
+      this.angle = Math.random() * this.difficulty * 30;
       this.markedForDeletion = false;
     }
     update(deltaTime) {
-      if (this.frameTimer > this.frameInterval) {
-        if (this.frameX > this.maxFrame) this.frameX = 0;
-        else this.frameX++;
-        this.frameTimer = 0;
-      } else {
-        this.frameTimer += deltaTime;
-      }
-      this.x -= this.speed;
+      this.x -= this.speed * deltaTime;
+      if (this.difficulty >= 5) this.y += Math.sin(this.angle) * this.difficulty/10;
+      if (this.y < 0 || this.y + this.height > this.canvasHeight) this.angle *= -1;
       if (this.x + this.width < 0 ) {
         this.markedForDeletion = true
         score++;
@@ -136,26 +142,36 @@ window.addEventListener('load', () => {
   const input = new InputHandler();
 
   function restartGame() {
+    player.reset();
+    input.reset();
     pipes = [];
     score = 0;
     gameOver = false;
-    player.y = 50;
-    player.velocity = 0;
-    animate(0);
+    animate(lastTime);
   }
+
   function displayText(context) {
     context.fillStyle = 'white';
     context.font = '30px Arial';
     context.fillText(`Score: ${score}`, 10, 30);
+    if (score > highScore) highScore = score;
+    context.fillText(`High Score: ${highScore}`, 10, 60);
     if (gameOver) {
       console.log('Game Over, score:', score); 
       context.fillText('Game Over, press Enter to restart', 150, 200);
     }
   }
+
+  let pipeTimer = 0;
+  let pipeInterval = 1000;
+  let randomPipeInterval = Math.random() * 1000 + 500;
+
   function handlePipes(deltaTime) {
     if (pipeTimer > pipeInterval + randomPipeInterval) {
-      pipes.push(new Pipe(canvas.width, canvas.height));
+      pipes.push(new Pipe(canvas.width, canvas.height, score));
       pipeTimer = 0;
+      if (score < 400) randomPipeInterval = Math.random() * 2000 + 1500 - score * 5;
+      else randomPipeInterval = Math.random() * 500 + 500;
     } else {
       pipeTimer += deltaTime;
     }
@@ -167,9 +183,6 @@ window.addEventListener('load', () => {
   }
 
   let lastTime = 0;
-  let pipeTimer = 0;
-  let pipeInterval = 1000;
-  let randomPipeInterval = Math.random() * 1000 + 500;
 
   function animate(timeStamp) {
     const deltaTime = timeStamp - lastTime;
@@ -183,5 +196,4 @@ window.addEventListener('load', () => {
     if (!gameOver) requestAnimationFrame(animate);
   }
   animate(0);
-
 });
