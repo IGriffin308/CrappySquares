@@ -52,21 +52,21 @@ window.addEventListener('load', () => {
       this.height = 70;
       this.x = 100;
       this.y = 50;
-      this.gravity = 0.02 + score/24000;
-      this.jump = -0.034 - score/16000;
+      this.gravity = 0.008;
+      this.jump = -0.4;
       this.velocity = 0;
     }
     controlJump(deltaTime) {
-      this.velocity = this.jump * deltaTime;
+      this.velocity = this.jump - score/1000;
     }
     update(input, deltaTime) {
-      this.velocity += this.gravity;
-      this.y += this.velocity * deltaTime;
       // controls
+      this.velocity += this.gravity + (score/8000);
       if (input.keys.includes(' ')) {
         this.controlJump(deltaTime)
         input.keys.splice(input.keys.indexOf(' '), 1);
       };
+      this.y += this.velocity * deltaTime;
       // handle game over
       if (this.y > canvas.height - this.height) {
         this.y = canvas.height - this.height;
@@ -104,13 +104,13 @@ window.addEventListener('load', () => {
     constructor(canvasWidth, canvasHeight, score) {
       this.canvasWidth = canvasWidth;
       this.canvasHeight = canvasHeight;
-      this.difficulty = Math.floor(score / 5);
+      this.difficulty = Math.floor(score / 5) + 1;
       this.width = 150;
       if (this.difficulty <= 10) this.height = 500 - this.difficulty * 20;
       else if (this.difficulty <= 20) this.height = 450 - (this.difficulty - 10) * 20;
-      else if (this.difficulty <= 30) this.height = 400 - (this.difficulty - 20) * 20;
-      else if (this.difficulty <= 40) this.height = 375 - (this.difficulty - 30) * 20;
-      else this.height = Math.random() * 200 + 150 + this.difficulty;
+      else if (this.difficulty <= 30) this.height = 425 - (this.difficulty - 20) * 20;
+      else if (this.difficulty <= 40) this.height = 375 - (this.difficulty - 30) * 15;
+      else this.height = Math.floor(Math.random() * 100) + this.difficulty * 5;
       this.x = canvas.width;
       this.y = Math.random() * (canvasHeight - this.height);
       if (this.difficulty <= 60) this.speed = 0.2 + this.difficulty * 0.01;
@@ -120,7 +120,7 @@ window.addEventListener('load', () => {
     }
     update(deltaTime) {
       this.x -= this.speed * deltaTime;
-      if (this.difficulty >= 5) this.y += Math.sin(this.angle) * this.difficulty/10;
+      if (this.difficulty >= 10) this.y += Math.sin(this.angle) * this.difficulty/10;
       if (this.y < 0 || this.y + this.height > this.canvasHeight) this.angle *= -1;
       if (this.x + this.width < 0 ) {
         this.markedForDeletion = true
